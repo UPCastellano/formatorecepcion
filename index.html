@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador PDF - Mi Biblioteca</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Scripts de Google para autenticación y Drive API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .pdf-card:hover { transform: translateY(-2px); }
+        .favorite-btn:hover { transform: scale(1.1); }
+        
+        /* Mejoras de responsividad */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            /* Mejorar la legibilidad en móviles */
+            .text-sm {
+                font-size: 0.875rem;
+            }
+            
+            /* Ajustar espaciado en móviles */
+            .space-y-3 > * + * {
+                margin-top: 0.75rem;
+            }
+            
+            /* Mejorar botones en móviles */
+            button {
+                min-height: 44px; /* Tamaño mínimo recomendado para touch */
+            }
+        }
+        
+        /* Mejorar el scroll horizontal en tablas */
+        .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mejorar la experiencia de drag & drop en móviles */
+        @media (max-width: 768px) {
+            #dropZone {
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 space-y-3 sm:space-y-0">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-600 p-2 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Mi Biblioteca PDF</h1>
+                </div>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                    <!-- Estado de autenticación -->
+                    <div id="authStatus" class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full w-full sm:w-auto justify-center sm:justify-start">
+                        <div id="authIndicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <span id="authText" class="text-sm font-medium text-gray-700">No autenticado</span>
+                    </div>
+                    
+                    <!-- Información del usuario (oculta inicialmente) -->
+                    <div id="userInfo" class="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-full hidden w-full sm:w-auto justify-center sm:justify-start">
+                        <img id="userProfilePic" src="" alt="Foto de perfil" class="w-6 h-6 rounded-full">
+                        <span id="userName" class="text-sm font-medium text-green-700"></span>
+                    </div>
+                    
+                    <!-- Botones de autenticación -->
+                    <button id="loginBtn" onclick="handleAuthClick()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium w-full sm:w-auto">
+                        Iniciar Sesión
+                    </button>
+                    <button id="logoutBtn" onclick="handleSignoutClick()" class="text-gray-500 hover:text-gray-700 transition-colors hidden w-full sm:w-auto flex items-center justify-center sm:justify-start">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        <span class="ml-2 sm:hidden">Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Sección de subida de archivos -->
+        <div id="uploadSection" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-8 hidden">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-3 sm:space-y-0">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <span class="text-sm sm:text-base">Subir Nuevos PDFs a Google Drive</span>
+                </h2>
+                <button onclick="toggleUploadSection()" id="uploadToggle" class="text-indigo-600 hover:text-indigo-800 transition-colors self-end sm:self-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="uploadSection" class="space-y-6">
+                <!-- Zona de arrastrar y soltar -->
+                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center hover:border-indigo-400 transition-colors cursor-pointer">
+                    <div class="space-y-3 sm:space-y-4">
+                        <div class="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-base sm:text-lg font-medium text-gray-900">Arrastra y suelta tus PDFs aquí</p>
+                            <p class="text-sm sm:text-base text-gray-500">o haz clic para seleccionar archivos</p>
+                        </div>
+                        <div class="text-xs sm:text-sm text-gray-400 space-y-1">
+                            <p>Formatos soportados: PDF</p>
+                            <p>Tamaño máximo: 10MB por archivo</p>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" multiple accept=".pdf" class="hidden">
+                </div>
+
+                <!-- Lista de archivos seleccionados -->
+                <div id="fileList" class="space-y-3 hidden">
+                    <h3 class="font-medium text-gray-900">Archivos seleccionados:</h3>
+                    <div id="selectedFiles" class="space-y-2"></div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div id="uploadActions" class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 hidden">
+                    <button onclick="clearFiles()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto">
+                        Limpiar
+                    </button>
+                    <button onclick="uploadFiles()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <span>Subir Archivos</span>
+                    </button>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div id="uploadProgress" class="hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Subiendo archivos...</span>
+                        <span id="progressText" class="text-sm text-gray-500">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de búsqueda y filtros -->
+        <div id="searchSection" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-8 hidden">
+            <div class="flex flex-col space-y-4">
+                <div class="flex-1 relative">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="Buscar PDFs en Google Drive..."
+                        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                        onkeypress="handleSearchKeyPress(event)"
+                    >
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="searchPDFs()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <span>Buscar</span>
+                    </button>
+                    <button onclick="loadAllPDFs()" class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>Recargar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div id="statsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 hidden">
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-2 sm:p-3 rounded-full">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4">
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Total PDFs</p>
+                        <p class="text-xl sm:text-2xl font-bold text-gray-900" id="totalCount">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-2 sm:p-3 rounded-full">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4">
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Encontrados</p>
+                        <p class="text-xl sm:text-2xl font-bold text-gray-900" id="foundCount">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-2 sm:p-3 rounded-full">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4">
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Última búsqueda</p>
+                        <p class="text-xs sm:text-sm font-bold text-gray-900" id="lastSearch">Nunca</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultsSection" class="bg-white rounded-xl shadow-lg p-4 sm:p-6 hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-3 sm:space-y-0">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900" id="resultsTitle">PDFs de Google Drive</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-500 w-full sm:w-auto">
+                    <span class="whitespace-nowrap">Ordenar por:</span>
+                    <select id="sortBy" onchange="sortPDFs()" class="border border-gray-300 rounded px-2 py-1 w-full sm:w-auto">
+                        <option value="name">Nombre</option>
+                        <option value="date">Fecha</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Tabla de PDFs -->
+            <div id="pdfTable" class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline">Documento</span>
+                                    <span class="sm:hidden">PDF</span>
+                                </div>
+                            </th>
+                            <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pdfTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Los PDFs se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="noResults" class="text-center py-8 sm:py-12 hidden">
+                <svg class="mx-auto w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">No se encontraron PDFs</h3>
+                <p class="text-sm sm:text-base text-gray-500 px-4">Intenta con otros términos de búsqueda o filtros</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Google Drive API
+        const CLIENT_ID = '769671858332-d05s6m2jmlfuokv8eamm6td8gq34tnlj.apps.googleusercontent.com';
+        const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.profile';
+        const FOLDER_ID = '1A9CVJoyWcUmuqNH3UC90T0eAs-YnVs_7'; // ID de tu carpeta de Google Drive
+
+        // Variables globales
+        let gapiInited = false;
+        let gisInited = false;
+        let tokenClient;
+        let accessToken = null;
+        let currentPDFs = [];
+        let selectedFiles = [];
+        let uploadSectionVisible = false;
+
+        // Funciones de persistencia de sesión
+        function saveSession(token, userInfo) {
+            console.log('Guardando sesión...');
+            console.log('Token:', token ? 'Presente' : 'Ausente');
+            console.log('UserInfo:', userInfo);
+            
+            const sessionData = {
+                accessToken: token,
+                userInfo: userInfo,
+                timestamp: Date.now()
+            };
+            
+            console.log('Datos de sesión a guardar:', sessionData);
+            localStorage.setItem('googleDriveSession', JSON.stringify(sessionData));
+            console.log('Sesión guardada exitosamente en localStorage');
+        }
+
+        function loadSession() {
+            try {
+                console.log('Intentando cargar sesión desde localStorage...');
+                const sessionData = localStorage.getItem('googleDriveSession');
+                console.log('Datos raw de localStorage:', sessionData);
+                
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    console.log('Datos parseados:', parsed);
+                    
+                    // Verificar si la sesión no ha expirado (24 horas)
+                    const now = Date.now();
+                    const sessionAge = now - parsed.timestamp;
+                    const isExpired = sessionAge > 24 * 60 * 60 * 1000;
+                    
+                    console.log('Timestamp actual:', now);
+                    console.log('Timestamp de sesión:', parsed.timestamp);
+                    console.log('Edad de sesión (ms):', sessionAge);
+                    console.log('Edad de sesión (horas):', sessionAge / (1000 * 60 * 60));
+                    console.log('¿Sesión expirada?', isExpired);
+                    console.log('¿Tiene accessToken?', !!parsed.accessToken);
+                    
+                    if (!isExpired && parsed.accessToken) {
+                        console.log('Sesión válida encontrada');
+                        return parsed;
+                    } else {
+                        console.log('Sesión expirada o sin token, limpiando...');
+                        // Limpiar sesión expirada
+                        clearSession();
+                    }
+                } else {
+                    console.log('No se encontraron datos de sesión en localStorage');
+                }
+            } catch (error) {
+                console.error('Error al cargar la sesión:', error);
+                clearSession();
+            }
+            return null;
+        }
+
+        function clearSession() {
+            console.log('Limpiando sesión de localStorage...');
+            localStorage.removeItem('googleDriveSession');
+            console.log('Sesión limpiada exitosamente');
+        }
+
+        function isTokenValid(token) {
+            // Verificar si el token sigue siendo válido
+            return token && token.length > 0;
+        }
+
+        // Inicialización de Google APIs
+        function gisInit() {
+            console.log('Inicializando GIS...');
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '',
+            });
+            gisInited = true;
+            console.log('GIS inicializado');
+            maybeEnableButtons();
+        }
+
+        function gapiLoaded() {
+            console.log('GAPI cargado, inicializando cliente...');
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            console.log('Inicializando cliente GAPI...');
+            await gapi.client.init({
+                discoveryDocs: [
+                    'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
+                    'https://www.googleapis.com/discovery/v1/apis/oauth2/v2/rest'
+                ],
+            });
+            gapiInited = true;
+            console.log('Cliente GAPI inicializado');
+            maybeEnableButtons();
+        }
+
+        function maybeEnableButtons() {
+            console.log('maybeEnableButtons llamado');
+            console.log('gapiInited:', gapiInited);
+            console.log('gisInited:', gisInited);
+            
+            if (gapiInited && gisInited) {
+                console.log('APIs inicializadas, intentando restaurar sesión...');
+                // Intentar restaurar la sesión guardada
+                restoreSession();
+            } else {
+                console.log('APIs no inicializadas aún, esperando...');
+            }
+        }
+
+        async function restoreSession() {
+            console.log('Iniciando restauración de sesión...');
+            const sessionData = loadSession();
+            console.log('Datos de sesión cargados:', sessionData);
+            
+            if (sessionData && isTokenValid(sessionData.accessToken)) {
+                console.log('Restaurando sesión guardada...');
+                
+                // Mostrar indicador de carga
+                const authText = document.getElementById('authText');
+                authText.textContent = 'Restaurando sesión...';
+                
+                accessToken = sessionData.accessToken;
+                console.log('Token restaurado:', accessToken ? 'Sí' : 'No');
+                
+                // Verificar si el token sigue siendo válido haciendo una prueba
+                try {
+                    gapi.client.setToken({access_token: accessToken});
+                    console.log('Token configurado en gapi.client');
+                    
+                    // Verificar que la API de OAuth2 esté disponible
+                    if (!gapi.client.oauth2) {
+                        console.log('API de OAuth2 no disponible, restaurando sesión sin verificación');
+                        updateSigninStatus(true);
+                        return;
+                    }
+                    
+                    // Hacer una llamada de prueba para verificar el token
+                    const userResponse = await gapi.client.oauth2.userinfo.get();
+                    console.log('Verificación de token exitosa:', userResponse);
+                    
+                    console.log('Sesión restaurada exitosamente');
+                    updateSigninStatus(true);
+                } catch (error) {
+                    console.error('Error al verificar token:', error);
+                    console.log('Token expirado o inválido, limpiando sesión');
+                    clearSession();
+                    accessToken = null;
+                    updateSigninStatus(false);
+                }
+            } else {
+                console.log('No hay sesión guardada o ha expirado');
+                console.log('SessionData:', sessionData);
+                console.log('Token válido:', sessionData ? isTokenValid(sessionData.accessToken) : 'No hay datos');
+                updateSigninStatus(false);
+            }
+        }
+
+        // Autenticación
+        function handleAuthClick() {
+            console.log('handleAuthClick llamado - iniciando autenticación...');
+            tokenClient.callback = async (resp) => {
+                console.log('Callback de autenticación recibido:', resp);
+                if (resp.error !== undefined) {
+                    console.error('Error en autenticación:', resp.error);
+                    throw (resp);
+                }
+                accessToken = resp.access_token;
+                console.log('Token de acceso obtenido:', accessToken ? 'Sí' : 'No');
+                
+                // Obtener información del usuario y guardar sesión
+                try {
+                    console.log('Configurando token en gapi.client...');
+                    gapi.client.setToken({access_token: accessToken});
+                    
+                    // Verificar que la API de OAuth2 esté disponible
+                    if (!gapi.client.oauth2) {
+                        console.error('API de OAuth2 no está disponible');
+                        throw new Error('API de OAuth2 no está disponible');
+                    }
+                    
+                    console.log('Obteniendo información del usuario...');
+                    const userResponse = await gapi.client.oauth2.userinfo.get();
+                    const userInfo = userResponse.result;
+                    console.log('Información del usuario obtenida:', userInfo);
+                    
+                    // Guardar sesión en localStorage
+                    console.log('Guardando sesión...');
+                    saveSession(accessToken, userInfo);
+                    
+                    console.log('Actualizando estado de autenticación...');
+                    updateSigninStatus(true);
+                } catch (error) {
+                    console.error('Error al obtener información del usuario:', error);
+                    // Aún así, guardar la sesión con el token aunque no tengamos info del usuario
+                    console.log('Guardando sesión solo con token...');
+                    saveSession(accessToken, { name: 'Usuario', email: 'usuario@ejemplo.com' });
+                    updateSigninStatus(true);
+                }
+            };
+
+            if (accessToken === null) {
+                console.log('Solicitando token de acceso con consentimiento...');
+                tokenClient.requestAccessToken({'prompt': 'consent'});
+            } else {
+                console.log('Solicitando token de acceso...');
+                tokenClient.requestAccessToken({'prompt': 'none'});
+            }
+        }
+
+        function handleSignoutClick() {
+            if (accessToken !== null) {
+                google.accounts.oauth2.revoke(accessToken, () => {
+                    accessToken = null;
+                    clearSession(); // Limpiar la sesión guardada
+                    updateSigninStatus(false);
+                });
+            } else {
+                // Si no hay token activo, solo limpiar la sesión guardada
+                clearSession();
+                updateSigninStatus(false);
+            }
+        }
+
+        function updateSigninStatus(isSignedIn) {
+            const authStatus = document.getElementById('authStatus');
+            const authIndicator = document.getElementById('authIndicator');
+            const authText = document.getElementById('authText');
+            const userInfo = document.getElementById('userInfo');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const uploadSection = document.getElementById('uploadSection');
+            const searchSection = document.getElementById('searchSection');
+            const statsSection = document.getElementById('statsSection');
+            const resultsSection = document.getElementById('resultsSection');
+
+            if (isSignedIn) {
+                authStatus.classList.remove('bg-gray-50');
+                authStatus.classList.add('bg-green-50');
+                authIndicator.classList.remove('bg-gray-400');
+                authIndicator.classList.add('bg-green-500');
+                authText.textContent = 'Autenticado';
+                authText.classList.remove('text-gray-700');
+                authText.classList.add('text-green-700');
+                
+                userInfo.classList.remove('hidden');
+                loginBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                uploadSection.classList.remove('hidden');
+                searchSection.classList.remove('hidden');
+                statsSection.classList.remove('hidden');
+                resultsSection.classList.remove('hidden');
+
+                // Obtener información del usuario (ya guardada en la sesión)
+                const sessionData = loadSession();
+                if (sessionData && sessionData.userInfo) {
+                    const profile = sessionData.userInfo;
+                    document.getElementById('userProfilePic').src = profile.picture;
+                    document.getElementById('userName').textContent = profile.name;
+                } else {
+                    // Fallback: obtener información del usuario si no está guardada
+                    gapi.client.oauth2.userinfo.get().then(function(response) {
+                        const profile = response.result;
+                        document.getElementById('userProfilePic').src = profile.picture;
+                        document.getElementById('userName').textContent = profile.name;
+                    });
+                }
+
+                // Cargar PDFs después de un pequeño delay para asegurar que la autenticación esté completa
+                setTimeout(() => {
+                    loadAllPDFs();
+                }, 1000);
+            } else {
+                authStatus.classList.remove('bg-green-50');
+                authStatus.classList.add('bg-gray-50');
+                authIndicator.classList.remove('bg-green-500');
+                authIndicator.classList.add('bg-gray-400');
+                authText.textContent = 'No autenticado';
+                authText.classList.remove('text-green-700');
+                authText.classList.add('text-gray-700');
+                
+                userInfo.classList.add('hidden');
+                loginBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                uploadSection.classList.add('hidden');
+                searchSection.classList.add('hidden');
+                statsSection.classList.add('hidden');
+                resultsSection.classList.add('hidden');
+                
+                currentPDFs = [];
+                renderPDFs([]);
+            }
+        }
+
+        // Función para renderizar PDFs de Google Drive
+        function renderPDFs(pdfs) {
+            const tableBody = document.getElementById('pdfTableBody');
+            const noResults = document.getElementById('noResults');
+            const pdfTable = document.getElementById('pdfTable');
+            
+            if (pdfs.length === 0) {
+                pdfTable.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                return;
+            }
+            
+            pdfTable.classList.remove('hidden');
+            noResults.classList.add('hidden');
+            
+            tableBody.innerHTML = pdfs.map(pdf => {
+                const fileSize = pdf.size ? (parseInt(pdf.size) / (1024 * 1024)).toFixed(2) + ' MB' : 'N/A';
+                const modifiedDate = new Date(pdf.modifiedTime).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const shortDate = new Date(pdf.modifiedTime).toLocaleDateString('es-ES', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                return `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-3 sm:px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="bg-red-100 p-1.5 sm:p-2 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm font-medium text-gray-900 truncate">${pdf.name}</div>
+                                <div class="text-xs sm:text-sm text-gray-500">${fileSize}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+                        <div class="text-xs text-gray-900 font-mono">${pdf.id}</div>
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div class="hidden sm:block">${modifiedDate}</div>
+                        <div class="sm:hidden text-xs">${shortDate}</div>
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center space-x-1 sm:space-x-2">
+                            <button onclick="viewPDF('${pdf.id}')" class="text-indigo-600 hover:text-indigo-900 transition-colors p-1" title="Ver PDF">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="downloadPDF('${pdf.id}')" class="text-gray-600 hover:text-gray-900 transition-colors p-1" title="Descargar PDF">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deletePDF('${pdf.id}', '${pdf.name.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-900 transition-colors p-1" title="Eliminar PDF">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            
+            updateStats();
+        }
+
+        // Funciones de Google Drive
+        async function loadAllPDFs() {
+            if (!accessToken) {
+                renderPDFs([]);
+                return;
+            }
+
+            try {
+                // Configurar el token de acceso para gapi.client
+                gapi.client.setToken({access_token: accessToken});
+                
+                console.log('Cargando PDFs de la carpeta:', FOLDER_ID);
+                
+                const response = await gapi.client.drive.files.list({
+                    q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
+                    fields: 'files(id, name, modifiedTime, webViewLink, size)',
+                    pageSize: 100,
+                    orderBy: 'modifiedTime desc'
+                });
+                
+                console.log('Respuesta de Google Drive:', response);
+                console.log('Archivos encontrados:', response.result.files);
+                
+                currentPDFs = response.result.files || [];
+                renderPDFs(currentPDFs);
+                updateResultsTitle('Todos los PDFs');
+                
+                if (currentPDFs.length === 0) {
+                    console.log('No se encontraron PDFs en la carpeta. Verificando si la carpeta existe...');
+                    // Verificar si la carpeta existe
+                    try {
+                        const folderResponse = await gapi.client.drive.files.get({
+                            fileId: FOLDER_ID,
+                            fields: 'id, name, mimeType'
+                        });
+                        console.log('Carpeta encontrada:', folderResponse.result);
+                    } catch (folderError) {
+                        console.error('Error al acceder a la carpeta:', folderError);
+                        alert('Error: No se puede acceder a la carpeta de Google Drive. Verifica que el ID de la carpeta sea correcto y que tengas permisos de acceso.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cargar PDFs:', error);
+                
+                // Verificar si es un error de autenticación
+                if (error.status === 401 || error.status === 403) {
+                    console.log('Token expirado, limpiando sesión');
+                    clearSession();
+                    accessToken = null;
+                    updateSigninStatus(false);
+                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                } else {
+                    renderPDFs([]);
+                    alert('Error al cargar PDFs: ' + error.message);
+                }
+            }
+        }
+
+        async function searchPDFs() {
+            if (!accessToken) {
+                renderPDFs([]);
+                return;
+            }
+
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const query = searchTerm ? `name contains '${searchTerm}' and ` : '';
+
+            try {
+                // Configurar el token de acceso para gapi.client
+                gapi.client.setToken({access_token: accessToken});
+                
+                const fullQuery = `'${FOLDER_ID}' in parents and ${query}mimeType='application/pdf'`;
+                console.log('Realizando búsqueda con query:', fullQuery);
+                
+                const response = await gapi.client.drive.files.list({
+                    q: fullQuery,
+                    fields: 'files(id, name, modifiedTime, webViewLink, size)',
+                    pageSize: 100,
+                    orderBy: 'modifiedTime desc'
+                });
+                
+                console.log('Búsqueda realizada:', searchTerm, 'Resultados:', response);
+                console.log('Archivos encontrados en búsqueda:', response.result.files);
+                
+                currentPDFs = response.result.files || [];
+                renderPDFs(currentPDFs);
+                updateResultsTitle(searchTerm ? `Resultados para "${searchTerm}"` : 'Todos los PDFs');
+                updateLastSearch();
+            } catch (error) {
+                console.error('Error al buscar PDFs:', error);
+                
+                // Verificar si es un error de autenticación
+                if (error.status === 401 || error.status === 403) {
+                    console.log('Token expirado, limpiando sesión');
+                    clearSession();
+                    accessToken = null;
+                    updateSigninStatus(false);
+                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                } else {
+                    renderPDFs([]);
+                    alert('Error al buscar PDFs: ' + error.message);
+                }
+            }
+        }
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchPDFs();
+            }
+        }
+
+        // Función para ordenar PDFs
+        function sortPDFs() {
+            const sortBy = document.getElementById('sortBy').value;
+            
+            currentPDFs.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'date':
+                    default:
+                        return new Date(b.modifiedTime) - new Date(a.modifiedTime);
+                }
+            });
+            
+            renderPDFs(currentPDFs);
+        }
+
+        // Función para ver PDF
+        function viewPDF(id) {
+            const pdf = currentPDFs.find(p => p.id === id);
+            if (pdf) {
+                window.open(pdf.webViewLink || `https://drive.google.com/file/d/${id}/view`, '_blank');
+            }
+        }
+
+        // Función para descargar PDF
+        function downloadPDF(id) {
+            const pdf = currentPDFs.find(p => p.id === id);
+            if (pdf) {
+                window.open(`https://drive.google.com/uc?export=download&id=${id}`, '_blank');
+            }
+        }
+
+        // Función para verificar permisos de la carpeta
+        async function checkFolderPermissions() {
+            try {
+                console.log('Verificando permisos de la carpeta...');
+                gapi.client.setToken({access_token: accessToken});
+                
+                const response = await gapi.client.drive.files.get({
+                    fileId: FOLDER_ID,
+                    fields: 'id, name, permissions, owners'
+                });
+                
+                console.log('Información de la carpeta:', response.result);
+                return response.result;
+            } catch (error) {
+                console.error('Error al verificar permisos:', error);
+                return null;
+            }
+        }
+
+        // Función para verificar permisos de un archivo específico
+        async function checkFilePermissions(fileId) {
+            try {
+                console.log('Verificando permisos del archivo:', fileId);
+                gapi.client.setToken({access_token: accessToken});
+                
+                const response = await gapi.client.drive.files.get({
+                    fileId: fileId,
+                    fields: 'id, name, permissions, owners, parents'
+                });
+                
+                console.log('Información del archivo:', response.result);
+                return response.result;
+            } catch (error) {
+                console.error('Error al verificar permisos del archivo:', error);
+                return null;
+            }
+        }
+
+        // Función para eliminar PDF
+        async function deletePDF(id, name) {
+            // Confirmar eliminación
+            const confirmMessage = `¿Estás seguro de que quieres eliminar el archivo "${name}"?\n\nEsta acción no se puede deshacer.`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            if (!accessToken) {
+                alert('No tienes permisos para eliminar archivos. Inicia sesión primero.');
+                return;
+            }
+
+            // Verificar permisos de la carpeta y del archivo
+            console.log('Verificando permisos antes de eliminar...');
+            const folderInfo = await checkFolderPermissions();
+            if (!folderInfo) {
+                alert('No se pudo verificar los permisos de la carpeta. Intenta nuevamente.');
+                return;
+            }
+
+            const fileInfo = await checkFilePermissions(id);
+            if (!fileInfo) {
+                alert('No se pudo verificar los permisos del archivo. Intenta nuevamente.');
+                return;
+            }
+
+            try {
+                console.log('=== INICIANDO ELIMINACIÓN ===');
+                console.log('ID del archivo:', id);
+                console.log('Nombre del archivo:', name);
+                console.log('Token disponible:', accessToken ? 'Sí' : 'No');
+                
+                // Configurar el token de acceso para gapi.client
+                gapi.client.setToken({access_token: accessToken});
+                console.log('Token configurado en gapi.client');
+                
+                // Verificar que gapi.client.drive esté disponible
+                if (!gapi.client.drive) {
+                    throw new Error('API de Google Drive no está disponible');
+                }
+                
+                console.log('Intentando eliminar archivo...');
+                
+                // Eliminar el archivo de Google Drive
+                const response = await gapi.client.drive.files.delete({
+                    fileId: id
+                });
+                
+                console.log('Respuesta de eliminación:', response);
+                console.log('Archivo eliminado exitosamente');
+                
+                // Mostrar mensaje de éxito
+                alert(`El archivo "${name}" ha sido eliminado exitosamente.`);
+                
+                // Actualizar la lista de PDFs
+                console.log('Actualizando lista de PDFs...');
+                await loadAllPDFs();
+                
+            } catch (error) {
+                console.error('=== ERROR AL ELIMINAR ===');
+                console.error('Error completo:', error);
+                console.error('Status:', error.status);
+                console.error('Message:', error.message);
+                console.error('Details:', error.details);
+                
+                // Verificar si es un error de autenticación
+                if (error.status === 401) {
+                    console.log('Error 401: Token expirado o inválido');
+                    clearSession();
+                    accessToken = null;
+                    updateSigninStatus(false);
+                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                } else if (error.status === 403) {
+                    console.log('Error 403: Sin permisos para eliminar');
+                    alert(`❌ Error de Permisos del Archivo\n\nNo tienes permisos para eliminar el archivo "${name}".\n\n🔧 Solución:\n1. Ve a Google Drive: https://drive.google.com\n2. Busca el archivo: "${name}"\n3. Haz clic derecho en el archivo → "Compartir"\n4. Cambia los permisos a "Editor" o "Cualquier usuario con el enlace"\n5. Asegúrate de que tengas permisos de "Puede editar"\n\n💡 Nota: Los permisos del archivo pueden ser diferentes a los de la carpeta.`);
+                } else if (error.status === 404) {
+                    console.log('Error 404: Archivo no encontrado');
+                    alert('El archivo no se encontró. Puede que ya haya sido eliminado.');
+                    // Actualizar la lista para reflejar el estado actual
+                    await loadAllPDFs();
+                } else {
+                    console.log('Error desconocido:', error);
+                    alert('Error al eliminar el archivo: ' + (error.message || 'Error desconocido'));
+                }
+            }
+        }
+
+        // Función para actualizar el título de resultados
+        function updateResultsTitle(title) {
+            document.getElementById('resultsTitle').textContent = title;
+        }
+
+        // Función para actualizar estadísticas
+        function updateStats() {
+            document.getElementById('totalCount').textContent = currentPDFs.length;
+            document.getElementById('foundCount').textContent = currentPDFs.length;
+        }
+
+        function updateLastSearch() {
+            const now = new Date();
+            document.getElementById('lastSearch').textContent = now.toLocaleTimeString('es-ES');
+        }
+
+        // Funciones para subida de archivos
+        function toggleUploadSection() {
+            const uploadSection = document.getElementById('uploadSection');
+            const toggleBtn = document.getElementById('uploadToggle');
+            
+            uploadSectionVisible = !uploadSectionVisible;
+            
+            if (uploadSectionVisible) {
+                uploadSection.classList.remove('hidden');
+                toggleBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+            } else {
+                uploadSection.classList.add('hidden');
+                toggleBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+            }
+        }
+
+        function setupFileUpload() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            // Click para abrir selector de archivos
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Manejar selección de archivos
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // Drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        function handleFiles(files) {
+            const validFiles = Array.from(files).filter(file => {
+                if (file.type !== 'application/pdf') {
+                    alert(`${file.name} no es un archivo PDF válido`);
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) { // 10MB
+                    alert(`${file.name} es demasiado grande (máximo 10MB)`);
+                    return false;
+                }
+                return true;
+            });
+
+            selectedFiles = [...selectedFiles, ...validFiles];
+            displaySelectedFiles();
+        }
+
+        function displaySelectedFiles() {
+            const fileList = document.getElementById('fileList');
+            const selectedFilesDiv = document.getElementById('selectedFiles');
+            const uploadActions = document.getElementById('uploadActions');
+
+            if (selectedFiles.length === 0) {
+                fileList.classList.add('hidden');
+                uploadActions.classList.add('hidden');
+                return;
+            }
+
+            fileList.classList.remove('hidden');
+            uploadActions.classList.remove('hidden');
+
+            selectedFilesDiv.innerHTML = selectedFiles.map((file, index) => `
+                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-red-100 p-2 rounded">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">${file.name}</p>
+                            <p class="text-sm text-gray-500">${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" class="text-red-500 hover:text-red-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displaySelectedFiles();
+        }
+
+        function clearFiles() {
+            selectedFiles = [];
+            document.getElementById('fileInput').value = '';
+            displaySelectedFiles();
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) return;
+            if (!accessToken) {
+                alert('Por favor, inicia sesión para subir archivos.');
+                return;
+            }
+
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const uploadActions = document.getElementById('uploadActions');
+
+            uploadProgress.classList.remove('hidden');
+            uploadActions.classList.add('hidden');
+
+            let uploadedCount = 0;
+            const totalFiles = selectedFiles.length;
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                
+                try {
+                    const metadata = {
+                        name: file.name,
+                        parents: [FOLDER_ID],
+                        mimeType: 'application/pdf'
+                    };
+
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', file);
+
+                    const response = await fetch(
+                        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            },
+                            body: form
+                        }
+                    );
+
+                    if (response.ok) {
+                        uploadedCount++;
+                    } else {
+                        console.error(`Error al subir ${file.name}:`, await response.text());
+                    }
+                } catch (error) {
+                    console.error(`Error al subir ${file.name}:`, error);
+                }
+
+                // Actualizar progreso
+                const progress = ((i + 1) / totalFiles) * 100;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+            }
+
+            // Completar subida
+            setTimeout(() => {
+                uploadProgress.classList.add('hidden');
+                uploadActions.classList.remove('hidden');
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+
+                clearFiles();
+                loadAllPDFs(); // Recargar la lista de PDFs
+
+                alert(`¡${uploadedCount} de ${totalFiles} archivo(s) subido(s) exitosamente!`);
+            }, 500);
+        }
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFileUpload();
+        });
+
+        // Cargar las bibliotecas de Google
+        window.addEventListener('load', () => {
+            console.log('Página cargada, inicializando APIs de Google...');
+            gapiLoaded();
+            gisInit();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978eb867c1d57644',t:'MTc1NjgzNDA2OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buscador y Gestor de PDFs en Google Drive</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Favicon de Google Drive -->
+    <link rel="icon" href="https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png" type="image/png">
+    <!-- Fuente Inter de Google Fonts para un look moderno y legible -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3f51b5; /* Azul índigo */
+            --primary-dark: #303f9f;
+            --accent-color: #00bcd4; /* Cian para resaltar */
+            --text-color: #333333;
+            --light-text-color: #757575;
+            --background-color: #f5f7fa; /* Gris muy claro */
+            --card-background: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-subtle: rgba(0, 0, 0, 0.05);
+            --shadow-medium: rgba(0, 0, 0, 0.1);
+            --success-color: #4caf50; /* Verde */
+            --error-color: #f44336; /* Rojo */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif; /* Usamos Inter */
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 40px; /* Pequeño padding superior */
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 95%;
+            margin: 0 auto 40px auto; /* Ajuste de margen inferior */
+            background-color: var(--card-background);
+            padding: 30px 35px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow-subtle);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            color: var(--text-color);
+            text-align: left;
+            margin-top: 35px;
+            margin-bottom: 18px;
+            font-size: 1.5em;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        #auth_status {
+            display: flex; /* Usamos flexbox para una mejor alineación */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background-color: var(--background-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px var(--shadow-subtle);
+        }
+
+        #auth_status p {
+            margin: 0 0 15px 0;
+            color: var(--light-text-color);
+            font-weight: 500;
+            font-size: 1em;
+        }
+
+        #user_info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 12px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            background-color: #e0f2f7; /* Un color suave para el usuario */
+            border: 1px solid #b2ebf2;
+        }
+
+        #user_profile_pic {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 2px 5px var(--shadow-subtle);
+        }
+
+        #user_name {
+            color: var(--text-color);
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 5px;
+            box-shadow: 0 4px 10px var(--shadow-subtle);
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px var(--shadow-medium);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px var(--shadow-subtle);
+        }
+
+        button#signout_button {
+            background-color: var(--error-color);
+        }
+
+        button#signout_button:hover {
+            background-color: #d32f2f;
+        }
+
+        #search_container,
+        #upload_container {
+            padding: 25px;
+            border-radius: 10px;
+            background-color: var(--card-background);
+            box-shadow: 0 4px 15px var(--shadow-subtle);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        #search_container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        #upload_container h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 1.4em;
+            color: var(--primary-color);
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        #upload_container input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95em;
+            box-sizing: border-box;
+            background-color: var(--background-color);
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #upload_container input[type="file"]::file-selector-button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: background-color 0.2s ease;
+        }
+
+        #upload_container input[type="file"]::file-selector-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        #upload_container input[type="file"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.2);
+            outline: none;
+        }
+
+        #upload_container button {
+            width: auto;
+            display: block;
+            margin: 0 auto 15px auto;
+            background-color: var(--accent-color);
+            color: var(--text-color);
+        }
+
+        #upload_container button:hover {
+            background-color: #008ba3;
+        }
+
+        #upload_status {
+            text-align: center;
+            font-weight: 500;
+            color: var(--light-text-color);
+            min-height: 1.5em;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        #search_query {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: var(--background-color);
+        }
+
+        #search_query:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.2);
+            outline: none;
+        }
+
+        #search_button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #search_button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        #results ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .pdf-item {
+            background-color: var(--card-background);
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--shadow-subtle);
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .pdf-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-medium);
+        }
+
+        .pdf-item a {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 500;
+            flex-grow: 1;
+            font-size: 1.05em;
+            word-break: break-word;
+        }
+
+        .pdf-item a:hover {
+            text-decoration: underline;
+            color: var(--primary-dark);
+        }
+
+        .pdf-icon {
+            margin-right: 15px;
+            color: var(--error-color); /* Usamos el color de error para el icono PDF */
+            font-size: 26px;
+            min-width: 26px;
+        }
+
+        /* Responsividad */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 20px;
+            }
+            .container {
+                margin: 0 auto 20px auto;
+                padding: 25px 20px;
+            }
+            h1 {
+                font-size: 2em;
+                margin-bottom: 25px;
+            }
+            h2 {
+                font-size: 1.3em;
+                margin-top: 30px;
+            }
+            #auth_status {
+                padding: 20px 15px;
+            }
+            #search_container,
+            #upload_container {
+                flex-direction: column;
+                gap: 10px;
+                padding: 20px;
+            }
+            #search_query {
+                max-width: 100%;
+            }
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+            #upload_container button {
+                margin: 0 auto 15px auto;
+            }
+            .pdf-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px;
+            }
+            .pdf-icon {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+            #user_info {
+                flex-direction: column;
+                gap: 5px;
+                padding: 8px 10px;
+            }
+            #user_name {
+                font-size: 1em;
+            }
+            #user_profile_pic {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Buscador y Gestor de PDFs en Google Drive</h1>
+
+        <div id="auth_status">
+            <p>Inicia sesión con tu cuenta de Google para buscar PDFs.</p>
+            <div id="user_info" style="display: none;">
+                <img id="user_profile_pic" src="" alt="Foto de perfil">
+                <span id="user_name"></span>
+            </div>
+            <button id="authorize_button">Autorizar</button>
+            <button id="signout_button" style="display: none;">Cerrar sesión</button>
+        </div>
+
+        <div id="search_container" style="display: none;">
+            <h2>Buscar PDFs:</h2>
+            <input type="text" id="search_query" placeholder="Buscar PDFs por nombre..." size="50">
+            <button id="search_button">Buscar</button>
+        </div>
+
+        <div id="upload_container" style="display: none;">
+            <h2>Subir nuevo PDF:</h2>
+            <input type="file" id="upload_file_input" accept=".pdf">
+            <button id="upload_button">Subir PDF</button>
+            <p id="upload_status"></p>
+        </div>
+
+        <div id="results">
+            <h2>Tus PDFs:</h2>
+            <ul id="pdf_list"></ul>
+        </div>
+    </div>
+
+    <!-- Asegúrate de que el script de GIS esté aquí -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
