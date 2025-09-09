@@ -171,7 +171,7 @@
                     <input 
                         type="text" 
                         id="searchInput"
-                        placeholder="Buscar PDFs en Google Drive..."
+                        placeholder="Buscar: edificio (D), ambiente (3.2.18.1.1), lugar (septico), nivel (N1), ambiente completo (pediatria)..."
                         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
                         onkeypress="handleSearchKeyPress(event)"
                     >
@@ -189,6 +189,42 @@
                         </svg>
                         <span>Recargar</span>
                     </button>
+                </div>
+                
+                <!-- Ayuda de búsqueda -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Guía de Búsqueda</h4>
+                            <div class="text-xs text-blue-800 space-y-1">
+                                <p><strong>Estructura del archivo:</strong> <code class="bg-blue-100 px-1 rounded">D-3.2.18.1.1-septico-N1-pediatria</code></p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                    <div>
+                                        <p><strong>Búsquedas específicas:</strong></p>
+                                        <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                            <li><code>D</code> → Edificio D</li>
+                                            <li><code>3.2.18.1.1</code> → Ambiente específico</li>
+                                            <li><code>septico</code> → Lugar (séptico)</li>
+                                            <li><code>N1</code> → Nivel N1</li>
+                                            <li><code>pediatria</code> → Ambiente completo</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <p><strong>Búsquedas combinadas:</strong></p>
+                                        <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                            <li><code>D-3</code> → Edificio D, ambiente 3.x.x.x.x</li>
+                                            <li><code>D-N1</code> → Edificio D, nivel N1</li>
+                                            <li><code>D-septico</code> → Edificio D, lugar séptico</li>
+                                            <li><code>3.2</code> → Ambientes 3.2.x.x.x</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -264,7 +300,24 @@
                                     <span class="sm:hidden">PDF</span>
                                 </div>
                             </th>
-                            <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline">Edificio</span>
+                                    <span class="sm:hidden">Edif.</span>
+                                </div>
+                            </th>
+                            <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline"># Ambiente</span>
+                                    <span class="sm:hidden"># Amb.</span>
+                                </div>
+                            </th>
                             <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                             <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -299,6 +352,127 @@
         let currentPDFs = [];
         let selectedFiles = [];
         let uploadSectionVisible = false;
+
+        // Función para extraer información completa del nombre del archivo
+        function extractBuildingAndEnvironment(fileName) {
+            // Estructura: D-3.2.18.1.1-septico-N1-pediatria
+            // Donde: Edificio-Numero-Lugar-Nivel-AmbienteCompleto
+            
+            const fullPattern = /^([A-Z])-(\d+(?:\.\d+)*)-([^-]+)-([^-]+)-(.+?)(?:\.pdf)?$/i;
+            const match = fileName.match(fullPattern);
+            
+            if (match) {
+                return {
+                    building: match[1],
+                    environment: match[2],
+                    place: match[3],
+                    level: match[4],
+                    fullEnvironment: match[5],
+                    hasFullStructure: true
+                };
+            }
+            
+            // Patrones de respaldo para estructuras más simples
+            const patterns = [
+                // Patrón: Letra-GUION-Numero-GUION (ej: G-10.3.2.1.1-servicios)
+                /^([A-Z])-(\d+(?:\.\d+)*)-/,
+                // Patrón: Letra-GUION-Numero-ESPACIO (ej: G-10.3.2.1.1 servicios)
+                /^([A-Z])-(\d+(?:\.\d+)*)\s/,
+                // Patrón: Letra-Numero-GUION (ej: G10.3.2.1.1-servicios)
+                /^([A-Z])(\d+(?:\.\d+)*)-/,
+                // Patrón: Letra-Numero-ESPACIO (ej: G10.3.2.1.1 servicios)
+                /^([A-Z])(\d+(?:\.\d+)*)\s/,
+                // Patrón: Solo número al inicio (ej: 5.1.4.1-archivo)
+                /^(\d+(?:\.\d+)*)-/,
+                // Patrón: Solo número al inicio seguido de espacio
+                /^(\d+(?:\.\d+)*)\s/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = fileName.match(pattern);
+                if (match) {
+                    if (match[2]) {
+                        // Patrón con prefijo (G-10.3.2.1.1 o G10.3.2.1.1)
+                        return {
+                            building: match[1],
+                            environment: match[2],
+                            place: 'N/A',
+                            level: 'N/A',
+                            fullEnvironment: 'N/A',
+                            hasFullStructure: false
+                        };
+                    } else {
+                        // Patrón solo número (5.1.4.1)
+                        return {
+                            building: 'N/A',
+                            environment: match[1],
+                            place: 'N/A',
+                            level: 'N/A',
+                            fullEnvironment: 'N/A',
+                            hasFullStructure: false
+                        };
+                    }
+                }
+            }
+            
+            // Si no se encuentra ningún patrón, intentar extraer la primera letra
+            const firstLetterMatch = fileName.match(/^([A-Z])/);
+            if (firstLetterMatch) {
+                return {
+                    building: firstLetterMatch[1],
+                    environment: 'N/A',
+                    place: 'N/A',
+                    level: 'N/A',
+                    fullEnvironment: 'N/A',
+                    hasFullStructure: false
+                };
+            }
+            
+            return {
+                building: 'N/A',
+                environment: 'N/A',
+                place: 'N/A',
+                level: 'N/A',
+                fullEnvironment: 'N/A',
+                hasFullStructure: false
+            };
+        }
+
+        // Función de compatibilidad para extraer solo el número de ambiente
+        function extractEnvironmentNumber(fileName) {
+            const result = extractBuildingAndEnvironment(fileName);
+            return result.environment;
+        }
+
+        // Función de prueba para verificar la extracción (solo para desarrollo)
+        function testExtraction() {
+            const testFiles = [
+                'D-3.2.18.1.1-septico-N1-pediatria.pdf',
+                'A-5.1.4.1-vestidor-N2-cirugia.pdf',
+                'B-9.1.2-cocina-N1-emergencias.pdf',
+                'C-7.1.4.1.1-lavanderia-N3-ortopedia.pdf',
+                'G-10.3.2.1.1-servicios sanitarios-N1.pdf',
+                'F-11.4.5.1.1-baño-N2-cardiologia.pdf',
+                'E-6.1.2.1.1-consultorio-N1-neurologia.pdf',
+                'H-8.2.3.1.1-quirofano-N2-traumatologia.pdf',
+                'G10.3.2.1.1-servicios sanitarios-N1.pdf', // Sin guión
+                'A5.1.4.1-vestidor-N1.pdf', // Sin guión
+                '5.1.4.1-archivo sin prefijo.pdf' // Sin letra inicial
+            ];
+            
+            console.log('=== PRUEBA DE EXTRACCIÓN COMPLETA ===');
+            testFiles.forEach(fileName => {
+                const result = extractBuildingAndEnvironment(fileName);
+                console.log(`Archivo: ${fileName}`);
+                console.log(`  Edificio: ${result.building}`);
+                console.log(`  Ambiente: ${result.environment}`);
+                console.log(`  Lugar: ${result.place}`);
+                console.log(`  Nivel: ${result.level}`);
+                console.log(`  Ambiente Completo: ${result.fullEnvironment}`);
+                console.log(`  Estructura Completa: ${result.hasFullStructure ? 'Sí' : 'No'}`);
+                console.log('---');
+            });
+        }
 
         // Funciones de persistencia de sesión
         function saveSession(token, userInfo) {
@@ -625,6 +799,7 @@
                     month: 'short',
                     day: 'numeric'
                 });
+                const buildingAndEnv = extractBuildingAndEnvironment(pdf.name);
                 
                 return `
                 <tr class="hover:bg-gray-50 transition-colors">
@@ -641,8 +816,19 @@
                             </div>
                         </div>
                     </td>
-                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                        <div class="text-xs text-gray-900 font-mono">${pdf.id}</div>
+                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center justify-center">
+                            <div class="bg-green-100 px-3 py-1 rounded-full">
+                                <span class="text-sm font-bold text-green-800">${buildingAndEnv.building}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center justify-center">
+                            <div class="bg-blue-100 px-2 py-1 rounded-md">
+                                <span class="text-xs font-mono font-medium text-blue-800">${buildingAndEnv.environment}</span>
+                            </div>
+                        </div>
                     </td>
                     <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div class="hidden sm:block">${modifiedDate}</div>
@@ -740,13 +926,19 @@
             }
 
             const searchTerm = document.getElementById('searchInput').value.trim();
-            const query = searchTerm ? `name contains '${searchTerm}' and ` : '';
-
+            
             try {
                 // Configurar el token de acceso para gapi.client
                 gapi.client.setToken({access_token: accessToken});
                 
-                const fullQuery = `'${FOLDER_ID}' in parents and ${query}mimeType='application/pdf'`;
+                // Si no hay término de búsqueda, cargar todos los PDFs
+                let fullQuery = `'${FOLDER_ID}' in parents and mimeType='application/pdf'`;
+                
+                if (searchTerm) {
+                    // Búsqueda básica por nombre en Google Drive
+                    fullQuery = `'${FOLDER_ID}' in parents and name contains '${searchTerm}' and mimeType='application/pdf'`;
+                }
+                
                 console.log('Realizando búsqueda con query:', fullQuery);
                 
                 const response = await gapi.client.drive.files.list({
@@ -759,7 +951,14 @@
                 console.log('Búsqueda realizada:', searchTerm, 'Resultados:', response);
                 console.log('Archivos encontrados en búsqueda:', response.result.files);
                 
-                currentPDFs = response.result.files || [];
+                let allPDFs = response.result.files || [];
+                
+                // Si hay término de búsqueda, aplicar filtros adicionales
+                if (searchTerm) {
+                    allPDFs = filterPDFsBySearchTerm(allPDFs, searchTerm);
+                }
+                
+                currentPDFs = allPDFs;
                 renderPDFs(currentPDFs);
                 updateResultsTitle(searchTerm ? `Resultados para "${searchTerm}"` : 'Todos los PDFs');
                 updateLastSearch();
@@ -778,6 +977,118 @@
                     alert('Error al buscar PDFs: ' + error.message);
                 }
             }
+        }
+
+        // Función para filtrar PDFs por término de búsqueda
+        function filterPDFsBySearchTerm(pdfs, searchTerm) {
+            const searchLower = searchTerm.toLowerCase();
+            
+            return pdfs.filter(pdf => {
+                const fileName = pdf.name.toLowerCase();
+                const buildingAndEnv = extractBuildingAndEnvironment(pdf.name);
+                const building = buildingAndEnv.building.toLowerCase();
+                const environment = buildingAndEnv.environment.toLowerCase();
+                const place = buildingAndEnv.place.toLowerCase();
+                const level = buildingAndEnv.level.toLowerCase();
+                const fullEnvironment = buildingAndEnv.fullEnvironment.toLowerCase();
+                
+                // Búsqueda por:
+                // 1. Nombre completo del archivo
+                if (fileName.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 2. Edificio (letra inicial)
+                if (building.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 3. Número de ambiente completo
+                if (environment.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 4. Lugar de ambiente (septico, cocina, etc.)
+                if (place !== 'n/a' && place.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 5. Nivel del edificio (N1, N2, etc.)
+                if (level !== 'n/a' && level.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 6. Ambiente completo (pediatria, emergencias, etc.)
+                if (fullEnvironment !== 'n/a' && fullEnvironment.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 7. Búsqueda por partes del número de ambiente (ej: "3.2" encuentra "3.2.18.1.1")
+                const numberParts = environment.split('.');
+                const searchParts = searchLower.split('.');
+                
+                if (searchParts.length > 1 && searchParts.every(part => 
+                    numberParts.some(numberPart => numberPart.includes(part))
+                )) {
+                    return true;
+                }
+                
+                // 8. Búsqueda combinada edificio-ambiente (ej: "D-3" encuentra "D-3.2.18.1.1")
+                const combinedSearch = `${building}-${environment}`;
+                if (combinedSearch.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 9. Búsqueda por letra seguida de número (ej: "D3" encuentra "D-3.2.18.1.1")
+                const letterNumberPattern = /^([a-z])(\d+)/;
+                const searchMatch = searchLower.match(letterNumberPattern);
+                if (searchMatch) {
+                    const searchLetter = searchMatch[1];
+                    const searchNumber = searchMatch[2];
+                    if (building === searchLetter && environment.startsWith(searchNumber)) {
+                        return true;
+                    }
+                }
+                
+                // 10. Búsqueda por nivel específico (ej: "N1" encuentra todos los N1)
+                if (level !== 'n/a' && level === searchLower) {
+                    return true;
+                }
+                
+                // 11. Búsqueda por lugar específico (ej: "septico" encuentra todos los sépticos)
+                if (place !== 'n/a' && place === searchLower) {
+                    return true;
+                }
+                
+                // 12. Búsqueda por ambiente específico (ej: "pediatria" encuentra todas las pediatrías)
+                if (fullEnvironment !== 'n/a' && fullEnvironment === searchLower) {
+                    return true;
+                }
+                
+                // 13. Búsqueda combinada edificio-nivel (ej: "D-N1" encuentra D-*-*-N1-*)
+                const buildingLevelPattern = /^([a-z])-([a-z]\d+)$/;
+                const buildingLevelMatch = searchLower.match(buildingLevelPattern);
+                if (buildingLevelMatch) {
+                    const searchBuilding = buildingLevelMatch[1];
+                    const searchLevel = buildingLevelMatch[2];
+                    if (building === searchBuilding && level === searchLevel) {
+                        return true;
+                    }
+                }
+                
+                // 14. Búsqueda combinada edificio-lugar (ej: "D-septico" encuentra D-*-septico-*-*)
+                const buildingPlacePattern = /^([a-z])-([a-z]+)$/;
+                const buildingPlaceMatch = searchLower.match(buildingPlacePattern);
+                if (buildingPlaceMatch) {
+                    const searchBuilding = buildingPlaceMatch[1];
+                    const searchPlace = buildingPlaceMatch[2];
+                    if (building === searchBuilding && place.includes(searchPlace)) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            });
         }
 
         function handleSearchKeyPress(event) {
