@@ -61,7 +61,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                     </div>
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Mi Biblioteca PDF</h1>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Mi Biblioteca PDF CHECKLIST</h1>
                 </div>
                 <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
                     <!-- Estado de autenticación -->
@@ -191,36 +191,61 @@
                     </button>
                 </div>
                 
-                <!-- Ayuda de búsqueda -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                    <div class="flex items-start space-x-2">
-                        <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div class="flex-1">
-                            <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Guía de Búsqueda</h4>
-                            <div class="text-xs text-blue-800 space-y-1">
-                                <p><strong>Estructura del archivo:</strong> <code class="bg-blue-100 px-1 rounded">D-3.2.18.1.1-septico-N1-pediatria</code></p>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                    <div>
-                                        <p><strong>Búsquedas específicas:</strong></p>
-                                        <ul class="list-disc list-inside space-y-0.5 ml-2">
-                                            <li><code>D</code> → Edificio D</li>
-                                            <li><code>3.2.18.1.1</code> → Ambiente específico</li>
-                                            <li><code>septico</code> → Lugar (séptico)</li>
-                                            <li><code>N1</code> → Nivel N1</li>
-                                            <li><code>pediatria</code> → Ambiente completo</li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <p><strong>Búsquedas combinadas:</strong></p>
-                                        <ul class="list-disc list-inside space-y-0.5 ml-2">
-                                            <li><code>D-3</code> → Edificio D, ambiente 3.x.x.x.x</li>
-                                            <li><code>D-N1</code> → Edificio D, nivel N1</li>
-                                            <li><code>D-septico</code> → Edificio D, lugar séptico</li>
-                                            <li><code>3.2</code> → Ambientes 3.2.x.x.x</li>
-                                        </ul>
-                                    </div>
+                <!-- Ayuda de búsqueda colapsable -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg mt-4">
+                    <div class="flex items-center justify-between p-4 cursor-pointer" onclick="toggleSearchGuide()">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h4 class="text-sm font-medium text-blue-900">💡 Guía de Búsqueda Avanzada</h4>
+                        </div>
+                        <button id="searchGuideToggle" class="text-blue-600 hover:text-blue-800 transition-colors">
+                            <svg class="w-5 h-5 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="searchGuideContent" class="px-4 pb-4 hidden">
+                        <div class="text-xs text-blue-800 space-y-1">
+                            <p><strong>Estructura del archivo:</strong> <code class="bg-blue-100 px-1 rounded">D-3.2.18.1.1-septico-N1-pediatria</code></p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                <div>
+                                    <p><strong>🔍 Búsquedas por Número de Ambiente:</strong></p>
+                                    <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                        <li><code>3.2.18.1.1</code> → Exacto</li>
+                                        <li><code>3.2</code> → Empieza con 3.2</li>
+                                        <li><code>3.2.</code> → Empieza con 3.2.</li>
+                                        <li><code>.1.1</code> → Termina con .1.1</li>
+                                        <li><code>18</code> → Contiene segmento 18</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p><strong>🏢 Búsquedas por Edificio:</strong></p>
+                                    <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                        <li><code>D</code> → Edificio D exacto</li>
+                                        <li><code>D-3.2</code> → Edificio D, ambiente 3.2.x</li>
+                                        <li><code>D3.2</code> → Sin guión</li>
+                                        <li><code>A-C</code> → Rango A a C</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p><strong>📍 Búsquedas por Ubicación:</strong></p>
+                                    <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                        <li><code>septico</code> → Lugar exacto</li>
+                                        <li><code>N1</code> → Nivel exacto</li>
+                                        <li><code>pediatria</code> → Ambiente exacto</li>
+                                        <li><code>D-septico</code> → Edificio D + lugar</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p><strong>🎯 Búsquedas Combinadas:</strong></p>
+                                    <ul class="list-disc list-inside space-y-0.5 ml-2">
+                                        <li><code>D-N1</code> → Edificio D, nivel N1</li>
+                                        <li><code>D-pediatria</code> → Edificio D, ambiente</li>
+                                        <li><code>3.2.18</code> → Ambientes 3.2.18.x.x</li>
+                                        <li><code>D-3.2.18</code> → Edificio D, ambiente 3.2.18.x.x</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -328,6 +353,24 @@
                 </table>
             </div>
             
+            <!-- Controles de paginación numérica -->
+            <div id="paginationContainer" class="mt-6 flex items-center justify-center space-x-2 hidden">
+                <button id="prevPageBtn" onclick="goToPage(currentPage - 1)" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Anterior
+                </button>
+                <div id="pageNumbers" class="flex space-x-1">
+                    <!-- Los números de página se generarán dinámicamente -->
+                </div>
+                <button id="nextPageBtn" onclick="goToPage(currentPage + 1)" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Siguiente
+                </button>
+            </div>
+            
+            <!-- Información de paginación -->
+            <div id="paginationInfo" class="mt-2 text-center text-sm text-gray-500 hidden">
+                Mostrando <span id="showingFrom">1</span> a <span id="showingTo">50</span> de <span id="totalFiles">0</span> archivos
+            </div>
+            
             <div id="noResults" class="text-center py-8 sm:py-12 hidden">
                 <svg class="mx-auto w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -352,6 +395,15 @@
         let currentPDFs = [];
         let selectedFiles = [];
         let uploadSectionVisible = false;
+        let searchGuideVisible = false;
+        
+        // Estado de paginación
+        const PAGE_SIZE = 50;
+        let allPDFs = []; // Todos los PDFs cargados para búsquedas completas
+        let filteredPDFs = []; // PDFs filtrados por búsqueda
+        let currentPage = 1;
+        let totalPages = 1;
+        let isLoading = false;
 
         // Función para extraer información completa del nombre del archivo
         function extractBuildingAndEnvironment(fileName) {
@@ -780,6 +832,7 @@
             if (pdfs.length === 0) {
                 pdfTable.classList.add('hidden');
                 noResults.classList.remove('hidden');
+                updatePaginationVisibility();
                 return;
             }
             
@@ -859,6 +912,56 @@
             }).join('');
             
             updateStats();
+            updatePaginationVisibility();
+        }
+
+        // Función para cargar TODOS los PDFs de Google Drive
+        async function loadAllPDFsFromDrive() {
+            if (!accessToken) {
+                allPDFs = [];
+                return;
+            }
+
+            try {
+                gapi.client.setToken({access_token: accessToken});
+                console.log('Cargando TODOS los PDFs de la carpeta:', FOLDER_ID);
+                
+                let allFiles = [];
+                let nextPageToken = null;
+                
+                do {
+                    const response = await gapi.client.drive.files.list({
+                        q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
+                        fields: 'nextPageToken, files(id, name, modifiedTime, webViewLink, size)',
+                        pageSize: 100, // Máximo por página de Drive API
+                        pageToken: nextPageToken || undefined,
+                        orderBy: 'modifiedTime desc'
+                    });
+                    
+                    allFiles = allFiles.concat(response.result.files || []);
+                    nextPageToken = response.result.nextPageToken;
+                    
+                    console.log(`Cargados ${allFiles.length} PDFs hasta ahora...`);
+                } while (nextPageToken);
+                
+                allPDFs = allFiles;
+                console.log(`Total de PDFs cargados: ${allPDFs.length}`);
+                
+                // Aplicar filtro actual si existe
+                applyCurrentFilter();
+                
+            } catch (error) {
+                console.error('Error al cargar PDFs:', error);
+                if (error.status === 401 || error.status === 403) {
+                    clearSession();
+                    accessToken = null;
+                    updateSigninStatus(false);
+                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                } else {
+                    alert('Error al cargar PDFs: ' + error.message);
+                }
+                allPDFs = [];
+            }
         }
 
         // Funciones de Google Drive
@@ -867,56 +970,12 @@
                 renderPDFs([]);
                 return;
             }
-
-            try {
-                // Configurar el token de acceso para gapi.client
-                gapi.client.setToken({access_token: accessToken});
-                
-                console.log('Cargando PDFs de la carpeta:', FOLDER_ID);
-                
-                const response = await gapi.client.drive.files.list({
-                    q: `'${FOLDER_ID}' in parents and mimeType='application/pdf'`,
-                    fields: 'files(id, name, modifiedTime, webViewLink, size)',
-                    pageSize: 100,
-                    orderBy: 'modifiedTime desc'
-                });
-                
-                console.log('Respuesta de Google Drive:', response);
-                console.log('Archivos encontrados:', response.result.files);
-                
-                currentPDFs = response.result.files || [];
-                renderPDFs(currentPDFs);
-                updateResultsTitle('Todos los PDFs');
-                
-                if (currentPDFs.length === 0) {
-                    console.log('No se encontraron PDFs en la carpeta. Verificando si la carpeta existe...');
-                    // Verificar si la carpeta existe
-                    try {
-                        const folderResponse = await gapi.client.drive.files.get({
-                            fileId: FOLDER_ID,
-                            fields: 'id, name, mimeType'
-                        });
-                        console.log('Carpeta encontrada:', folderResponse.result);
-                    } catch (folderError) {
-                        console.error('Error al acceder a la carpeta:', folderError);
-                        alert('Error: No se puede acceder a la carpeta de Google Drive. Verifica que el ID de la carpeta sea correcto y que tengas permisos de acceso.');
-                    }
-                }
-            } catch (error) {
-                console.error('Error al cargar PDFs:', error);
-                
-                // Verificar si es un error de autenticación
-                if (error.status === 401 || error.status === 403) {
-                    console.log('Token expirado, limpiando sesión');
-                    clearSession();
-                    accessToken = null;
-                    updateSigninStatus(false);
-                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-                } else {
-                    renderPDFs([]);
-                    alert('Error al cargar PDFs: ' + error.message);
-                }
-            }
+            
+            // Mostrar indicador de carga
+            const tableBody = document.getElementById('pdfTableBody');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div><span class="ml-2">Cargando todos los archivos...</span></div></td></tr>';
+            
+            await loadAllPDFsFromDrive();
         }
 
         async function searchPDFs() {
@@ -924,64 +983,157 @@
                 renderPDFs([]);
                 return;
             }
+            
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            applyCurrentFilter();
+            updateResultsTitle(searchTerm ? `Resultados para "${searchTerm}"` : 'Todos los PDFs');
+            updateLastSearch();
+        }
 
+        // Aplicar filtro de búsqueda a todos los PDFs cargados
+        function applyCurrentFilter() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             
-            try {
-                // Configurar el token de acceso para gapi.client
-                gapi.client.setToken({access_token: accessToken});
-                
-                // Si no hay término de búsqueda, cargar todos los PDFs
-                let fullQuery = `'${FOLDER_ID}' in parents and mimeType='application/pdf'`;
-                
-                if (searchTerm) {
-                    // Búsqueda básica por nombre en Google Drive
-                    fullQuery = `'${FOLDER_ID}' in parents and name contains '${searchTerm}' and mimeType='application/pdf'`;
+            if (searchTerm) {
+                filteredPDFs = filterPDFsBySearchTerm(allPDFs, searchTerm);
+            } else {
+                filteredPDFs = [...allPDFs];
+            }
+            
+            currentPage = 1;
+            totalPages = Math.ceil(filteredPDFs.length / PAGE_SIZE);
+            displayCurrentPage();
+        }
+
+        // Mostrar la página actual
+        function displayCurrentPage() {
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const endIndex = startIndex + PAGE_SIZE;
+            const pagePDFs = filteredPDFs.slice(startIndex, endIndex);
+            
+            renderPDFs(pagePDFs);
+            updatePaginationInfo();
+            updatePaginationControls();
+        }
+
+        // Ir a una página específica
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || isLoading) return;
+            
+            currentPage = page;
+            displayCurrentPage();
+        }
+
+        // Actualizar información de paginación
+        function updatePaginationInfo() {
+            const showingFrom = document.getElementById('showingFrom');
+            const showingTo = document.getElementById('showingTo');
+            const totalFiles = document.getElementById('totalFiles');
+            const paginationInfo = document.getElementById('paginationInfo');
+            
+            if (filteredPDFs.length === 0) {
+                paginationInfo.classList.add('hidden');
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const endIndex = Math.min(startIndex + PAGE_SIZE, filteredPDFs.length);
+            
+            showingFrom.textContent = startIndex + 1;
+            showingTo.textContent = endIndex;
+            totalFiles.textContent = filteredPDFs.length;
+            
+            paginationInfo.classList.remove('hidden');
+        }
+
+        // Actualizar controles de paginación
+        function updatePaginationControls() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pageNumbers = document.getElementById('pageNumbers');
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            
+            if (totalPages <= 1) {
+                paginationContainer.classList.add('hidden');
+                return;
+            }
+            
+            paginationContainer.classList.remove('hidden');
+            
+            // Botones anterior/siguiente
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            
+            // Números de página
+            pageNumbers.innerHTML = '';
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // Página 1
+            if (startPage > 1) {
+                addPageButton(1);
+                if (startPage > 2) {
+                    addEllipsis();
                 }
-                
-                console.log('Realizando búsqueda con query:', fullQuery);
-                
-                const response = await gapi.client.drive.files.list({
-                    q: fullQuery,
-                    fields: 'files(id, name, modifiedTime, webViewLink, size)',
-                    pageSize: 100,
-                    orderBy: 'modifiedTime desc'
-                });
-                
-                console.log('Búsqueda realizada:', searchTerm, 'Resultados:', response);
-                console.log('Archivos encontrados en búsqueda:', response.result.files);
-                
-                let allPDFs = response.result.files || [];
-                
-                // Si hay término de búsqueda, aplicar filtros adicionales
-                if (searchTerm) {
-                    allPDFs = filterPDFsBySearchTerm(allPDFs, searchTerm);
+            }
+            
+            // Páginas del rango
+            for (let i = startPage; i <= endPage; i++) {
+                addPageButton(i);
+            }
+            
+            // Última página
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    addEllipsis();
                 }
-                
-                currentPDFs = allPDFs;
-                renderPDFs(currentPDFs);
-                updateResultsTitle(searchTerm ? `Resultados para "${searchTerm}"` : 'Todos los PDFs');
-                updateLastSearch();
-            } catch (error) {
-                console.error('Error al buscar PDFs:', error);
-                
-                // Verificar si es un error de autenticación
-                if (error.status === 401 || error.status === 403) {
-                    console.log('Token expirado, limpiando sesión');
-                    clearSession();
-                    accessToken = null;
-                    updateSigninStatus(false);
-                    alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-                } else {
-                    renderPDFs([]);
-                    alert('Error al buscar PDFs: ' + error.message);
-                }
+                addPageButton(totalPages);
+            }
+        }
+
+        function addPageButton(pageNum) {
+            const pageNumbers = document.getElementById('pageNumbers');
+            const button = document.createElement('button');
+            button.textContent = pageNum;
+            button.className = `px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                pageNum === currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+            }`;
+            button.onclick = () => goToPage(pageNum);
+            pageNumbers.appendChild(button);
+        }
+
+        function addEllipsis() {
+            const pageNumbers = document.getElementById('pageNumbers');
+            const ellipsis = document.createElement('span');
+            ellipsis.textContent = '...';
+            ellipsis.className = 'px-3 py-2 text-sm text-gray-500';
+            pageNumbers.appendChild(ellipsis);
+        }
+
+        function updatePaginationVisibility() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            const paginationInfo = document.getElementById('paginationInfo');
+            
+            if (filteredPDFs.length === 0) {
+                paginationContainer.classList.add('hidden');
+                paginationInfo.classList.add('hidden');
+            } else {
+                updatePaginationControls();
+                updatePaginationInfo();
             }
         }
 
         // Función para filtrar PDFs por término de búsqueda
         function filterPDFsBySearchTerm(pdfs, searchTerm) {
-            const searchLower = searchTerm.toLowerCase();
+            const searchLower = searchTerm.toLowerCase().trim();
             
             return pdfs.filter(pdf => {
                 const fileName = pdf.name.toLowerCase();
@@ -998,74 +1150,85 @@
                     return true;
                 }
                 
-                // 2. Edificio (letra inicial)
-                if (building.includes(searchLower)) {
+                // 2. Edificio (letra inicial) - búsqueda exacta
+                if (building === searchLower) {
                     return true;
                 }
                 
-                // 3. Número de ambiente completo
-                if (environment.includes(searchLower)) {
+                // 3. NÚMERO DE AMBIENTE - BÚSQUEDAS MÁS ESPECÍFICAS
+                
+                // 3.1. Número de ambiente exacto (ej: "3.2.18.1.1" encuentra solo ese)
+                if (environment === searchLower) {
                     return true;
                 }
                 
-                // 4. Lugar de ambiente (septico, cocina, etc.)
+                // 3.2. Número de ambiente que empiece con el término (ej: "3.2" encuentra "3.2.18.1.1", "3.2.5.1.1")
+                if (environment.startsWith(searchLower + '.')) {
+                    return true;
+                }
+                
+                // 3.3. Número de ambiente que termine con el término (ej: ".1.1" encuentra "3.2.18.1.1", "5.1.4.1.1")
+                if (environment.endsWith('.' + searchLower)) {
+                    return true;
+                }
+                
+                // 3.4. Número de ambiente que contenga el término como segmento completo (ej: "18" encuentra "3.2.18.1.1")
+                const envParts = environment.split('.');
+                if (envParts.includes(searchLower)) {
+                    return true;
+                }
+                
+                // 3.5. Búsqueda por rango de números (ej: "3.2.18" encuentra "3.2.18.1.1", "3.2.18.2.1")
+                if (searchLower.includes('.') && environment.startsWith(searchLower)) {
+                    return true;
+                }
+                
+                // 4. Lugar de ambiente (septico, cocina, etc.) - búsqueda exacta primero
+                if (place !== 'n/a' && place === searchLower) {
+                    return true;
+                }
                 if (place !== 'n/a' && place.includes(searchLower)) {
                     return true;
                 }
                 
-                // 5. Nivel del edificio (N1, N2, etc.)
-                if (level !== 'n/a' && level.includes(searchLower)) {
-                    return true;
-                }
-                
-                // 6. Ambiente completo (pediatria, emergencias, etc.)
-                if (fullEnvironment !== 'n/a' && fullEnvironment.includes(searchLower)) {
-                    return true;
-                }
-                
-                // 7. Búsqueda por partes del número de ambiente (ej: "3.2" encuentra "3.2.18.1.1")
-                const numberParts = environment.split('.');
-                const searchParts = searchLower.split('.');
-                
-                if (searchParts.length > 1 && searchParts.every(part => 
-                    numberParts.some(numberPart => numberPart.includes(part))
-                )) {
-                    return true;
-                }
-                
-                // 8. Búsqueda combinada edificio-ambiente (ej: "D-3" encuentra "D-3.2.18.1.1")
-                const combinedSearch = `${building}-${environment}`;
-                if (combinedSearch.includes(searchLower)) {
-                    return true;
-                }
-                
-                // 9. Búsqueda por letra seguida de número (ej: "D3" encuentra "D-3.2.18.1.1")
-                const letterNumberPattern = /^([a-z])(\d+)/;
-                const searchMatch = searchLower.match(letterNumberPattern);
-                if (searchMatch) {
-                    const searchLetter = searchMatch[1];
-                    const searchNumber = searchMatch[2];
-                    if (building === searchLetter && environment.startsWith(searchNumber)) {
-                        return true;
-                    }
-                }
-                
-                // 10. Búsqueda por nivel específico (ej: "N1" encuentra todos los N1)
+                // 5. Nivel del edificio (N1, N2, etc.) - búsqueda exacta
                 if (level !== 'n/a' && level === searchLower) {
                     return true;
                 }
                 
-                // 11. Búsqueda por lugar específico (ej: "septico" encuentra todos los sépticos)
-                if (place !== 'n/a' && place === searchLower) {
-                    return true;
-                }
-                
-                // 12. Búsqueda por ambiente específico (ej: "pediatria" encuentra todas las pediatrías)
+                // 6. Ambiente completo (pediatria, emergencias, etc.) - búsqueda exacta primero
                 if (fullEnvironment !== 'n/a' && fullEnvironment === searchLower) {
                     return true;
                 }
+                if (fullEnvironment !== 'n/a' && fullEnvironment.includes(searchLower)) {
+                    return true;
+                }
                 
-                // 13. Búsqueda combinada edificio-nivel (ej: "D-N1" encuentra D-*-*-N1-*)
+                // 7. BÚSQUEDAS COMBINADAS MÁS ESPECÍFICAS
+                
+                // 7.1. Edificio-Número exacto (ej: "D-3.2" encuentra "D-3.2.18.1.1")
+                const buildingNumberPattern = /^([a-z])-(\d+(?:\.\d+)*)$/;
+                const buildingNumberMatch = searchLower.match(buildingNumberPattern);
+                if (buildingNumberMatch) {
+                    const searchBuilding = buildingNumberMatch[1];
+                    const searchNumber = buildingNumberMatch[2];
+                    if (building === searchBuilding && environment.startsWith(searchNumber)) {
+                        return true;
+                    }
+                }
+                
+                // 7.2. Edificio-Número sin guión (ej: "D3.2" encuentra "D-3.2.18.1.1")
+                const buildingNumberNoDashPattern = /^([a-z])(\d+(?:\.\d+)*)$/;
+                const buildingNumberNoDashMatch = searchLower.match(buildingNumberNoDashPattern);
+                if (buildingNumberNoDashMatch) {
+                    const searchBuilding = buildingNumberNoDashMatch[1];
+                    const searchNumber = buildingNumberNoDashMatch[2];
+                    if (building === searchBuilding && environment.startsWith(searchNumber)) {
+                        return true;
+                    }
+                }
+                
+                // 7.3. Edificio-Nivel (ej: "D-N1" encuentra D-*-*-N1-*)
                 const buildingLevelPattern = /^([a-z])-([a-z]\d+)$/;
                 const buildingLevelMatch = searchLower.match(buildingLevelPattern);
                 if (buildingLevelMatch) {
@@ -1076,7 +1239,7 @@
                     }
                 }
                 
-                // 14. Búsqueda combinada edificio-lugar (ej: "D-septico" encuentra D-*-septico-*-*)
+                // 7.4. Edificio-Lugar (ej: "D-septico" encuentra D-*-septico-*-*)
                 const buildingPlacePattern = /^([a-z])-([a-z]+)$/;
                 const buildingPlaceMatch = searchLower.match(buildingPlacePattern);
                 if (buildingPlaceMatch) {
@@ -1084,6 +1247,68 @@
                     const searchPlace = buildingPlaceMatch[2];
                     if (building === searchBuilding && place.includes(searchPlace)) {
                         return true;
+                    }
+                }
+                
+                // 7.5. Edificio-Ambiente completo (ej: "D-pediatria" encuentra D-*-*-*-pediatria)
+                const buildingEnvironmentPattern = /^([a-z])-([a-z]+)$/;
+                const buildingEnvironmentMatch = searchLower.match(buildingEnvironmentPattern);
+                if (buildingEnvironmentMatch) {
+                    const searchBuilding = buildingEnvironmentMatch[1];
+                    const searchEnvironment = buildingEnvironmentMatch[2];
+                    if (building === searchBuilding && fullEnvironment.includes(searchEnvironment)) {
+                        return true;
+                    }
+                }
+                
+                // 8. BÚSQUEDAS POR NÚMERO PURO (sin edificio)
+                
+                // 8.1. Solo número (ej: "3.2" encuentra todos los que empiecen con 3.2)
+                const pureNumberPattern = /^\d+(?:\.\d+)*$/;
+                if (pureNumberPattern.test(searchLower)) {
+                    if (environment.startsWith(searchLower)) {
+                        return true;
+                    }
+                }
+                
+                // 8.2. Número con punto al final (ej: "3.2." encuentra "3.2.18.1.1")
+                if (searchLower.endsWith('.') && environment.startsWith(searchLower)) {
+                    return true;
+                }
+                
+                // 9. BÚSQUEDAS POR RANGO DE NÚMEROS
+                
+                // 9.1. Rango de edificios (ej: "A-C" encuentra edificios A, B, C)
+                const buildingRangePattern = /^([a-z])-([a-z])$/;
+                const buildingRangeMatch = searchLower.match(buildingRangePattern);
+                if (buildingRangeMatch) {
+                    const startBuilding = buildingRangeMatch[1].charCodeAt(0);
+                    const endBuilding = buildingRangeMatch[2].charCodeAt(0);
+                    const currentBuildingCode = building.charCodeAt(0);
+                    if (currentBuildingCode >= startBuilding && currentBuildingCode <= endBuilding) {
+                        return true;
+                    }
+                }
+                
+                // 10. BÚSQUEDAS POR COINCIDENCIA EXACTA DE SEGMENTOS
+                
+                // 10.1. Coincidencia exacta de segmentos del número (ej: "3.2.18" encuentra "3.2.18.1.1" pero no "3.2.19.1.1")
+                if (searchLower.includes('.')) {
+                    const searchSegments = searchLower.split('.');
+                    const envSegments = environment.split('.');
+                    
+                    // Verificar si todos los segmentos de búsqueda coinciden exactamente con los primeros segmentos del ambiente
+                    if (searchSegments.length <= envSegments.length) {
+                        let exactMatch = true;
+                        for (let i = 0; i < searchSegments.length; i++) {
+                            if (searchSegments[i] !== envSegments[i]) {
+                                exactMatch = false;
+                                break;
+                            }
+                        }
+                        if (exactMatch) {
+                            return true;
+                        }
                     }
                 }
                 
@@ -1101,7 +1326,7 @@
         function sortPDFs() {
             const sortBy = document.getElementById('sortBy').value;
             
-            currentPDFs.sort((a, b) => {
+            filteredPDFs.sort((a, b) => {
                 switch (sortBy) {
                     case 'name':
                         return a.name.localeCompare(b.name);
@@ -1111,12 +1336,15 @@
                 }
             });
             
-            renderPDFs(currentPDFs);
+            // Volver a la primera página después de ordenar
+            currentPage = 1;
+            totalPages = Math.ceil(filteredPDFs.length / PAGE_SIZE);
+            displayCurrentPage();
         }
 
         // Función para ver PDF
         function viewPDF(id) {
-            const pdf = currentPDFs.find(p => p.id === id);
+            const pdf = allPDFs.find(p => p.id === id);
             if (pdf) {
                 window.open(pdf.webViewLink || `https://drive.google.com/file/d/${id}/view`, '_blank');
             }
@@ -1124,7 +1352,7 @@
 
         // Función para descargar PDF
         function downloadPDF(id) {
-            const pdf = currentPDFs.find(p => p.id === id);
+            const pdf = allPDFs.find(p => p.id === id);
             if (pdf) {
                 window.open(`https://drive.google.com/uc?export=download&id=${id}`, '_blank');
             }
@@ -1225,7 +1453,7 @@
                 
                 // Actualizar la lista de PDFs
                 console.log('Actualizando lista de PDFs...');
-                await loadAllPDFs();
+                await loadAllPDFsFromDrive();
                 
             } catch (error) {
                 console.error('=== ERROR AL ELIMINAR ===');
@@ -1263,8 +1491,8 @@
 
         // Función para actualizar estadísticas
         function updateStats() {
-            document.getElementById('totalCount').textContent = currentPDFs.length;
-            document.getElementById('foundCount').textContent = currentPDFs.length;
+            document.getElementById('totalCount').textContent = allPDFs.length;
+            document.getElementById('foundCount').textContent = filteredPDFs.length;
         }
 
         function updateLastSearch() {
@@ -1281,10 +1509,26 @@
             
             if (uploadSectionVisible) {
                 uploadSection.classList.remove('hidden');
-                toggleBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+                toggleBtn.innerHTML = '<svg class="w-5 h-5 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
             } else {
                 uploadSection.classList.add('hidden');
-                toggleBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+                toggleBtn.innerHTML = '<svg class="w-5 h-5 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+            }
+        }
+
+        // Función para colapsar/expandir guía de búsqueda
+        function toggleSearchGuide() {
+            const searchGuideContent = document.getElementById('searchGuideContent');
+            const searchGuideToggle = document.getElementById('searchGuideToggle');
+            
+            searchGuideVisible = !searchGuideVisible;
+            
+            if (searchGuideVisible) {
+                searchGuideContent.classList.remove('hidden');
+                searchGuideToggle.innerHTML = '<svg class="w-5 h-5 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+            } else {
+                searchGuideContent.classList.add('hidden');
+                searchGuideToggle.innerHTML = '<svg class="w-5 h-5 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
             }
         }
 
@@ -1443,14 +1687,14 @@
             }
 
             // Completar subida
-            setTimeout(() => {
+            setTimeout(async () => {
                 uploadProgress.classList.add('hidden');
                 uploadActions.classList.remove('hidden');
                 progressBar.style.width = '0%';
                 progressText.textContent = '0%';
 
                 clearFiles();
-                loadAllPDFs(); // Recargar la lista de PDFs
+                await loadAllPDFsFromDrive(); // Recargar la lista de PDFs
 
                 alert(`¡${uploadedCount} de ${totalFiles} archivo(s) subido(s) exitosamente!`);
             }, 500);
